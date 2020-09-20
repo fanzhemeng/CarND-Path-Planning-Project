@@ -131,11 +131,22 @@ int main() {
                 // do some logic here, lower reference velocity so we don't 
                 // crash into the car in front of us. could also flag to try
                 // to change lanes
-                ref_vel = 29.5; //mph
-                //too_clost = true;
+                //ref_vel = 29.5; //mph
+                too_close = true;
               }
             }
           }
+
+          double max_vel = 49.5;
+          if (too_close)
+          {
+            ref_vel -= 0.224;
+          }
+          else if (ref_vel < max_vel)
+          {
+            ref_vel += 0.224;
+          }
+
 
           // create a list of widely spaced (x,y) waypoints, evenly spaced at 30m
           // later we will interpolate these waypoints with a spline and 
