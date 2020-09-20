@@ -29,6 +29,11 @@ int main() {
   // The max s value before wrapping around the track back to 0
   double max_s = 6945.554;
 
+  // start in lane 1 of 0,1,2
+  int lane = 1;
+  // Have a reference velocity to target
+  double ref_vel = 0.0; //mph
+
   std::ifstream in_map_(map_file_.c_str(), std::ifstream::in);
 
   string line;
@@ -52,7 +57,7 @@ int main() {
   }
 
   h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
-               &map_waypoints_dx,&map_waypoints_dy]
+               &map_waypoints_dx,&map_waypoints_dy, &lane, &ref_vel]
               (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -99,11 +104,38 @@ int main() {
 
           int prev_size = previous_path_x.size();
 
-          // start in lane 1 of 0,1,2
-          int lane = 1;
 
-          // Have a reference velocity to target
-          double ref_vel = 49.5; //mph
+          if (prev_size > 0) {
+            car_s = end_path_s;
+          }
+
+          bool too_close = false;
+
+          // find ref_v to use
+          for (int i = 0; i < sensor_fusion.size(); i++) {
+
+            // car is in my lane
+            float d = sensor_fusion[i][6];
+            if (d < (2+4*lane+2) && d > (2+4*lane-1))
+            {
+              double vx = sensor_fusion[i][3];
+              double vy = sensor_fusion[i][4];
+              double check_speed = sqrt(vx*vx+vy*vy);
+              double check_car_s = sensor_fusion[i][5];
+
+              // if using previous points can project s value out
+              check_car_s += ((double)prev_size * 0.02 * check_speed);
+              // check s values greater than mine and s gap
+              if (check_car_s > car_s && check_car_s - car_s < 30)
+              {
+                // do some logic here, lower reference velocity so we don't 
+                // crash into the car in front of us. could also flag to try
+                // to change lanes
+                ref_vel = 29.5; //mph
+                //too_clost = true;
+              }
+            }
+          }
 
           // create a list of widely spaced (x,y) waypoints, evenly spaced at 30m
           // later we will interpolate these waypoints with a spline and 
