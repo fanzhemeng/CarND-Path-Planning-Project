@@ -112,6 +112,8 @@ int main() {
           bool left_lane_clear = true;  // left lane of our current lane
           bool right_lane_clear = true; // right lane of our current lane
           bool change_lane = false;     // would like to change lane
+          int side_safe_dist = 10;
+          int front_safe_dist = 20;
 
           // look through cars
           for (int i = 0; i < sensor_fusion.size(); i++) {
@@ -127,25 +129,25 @@ int main() {
 
             if (d > 0 && d < 12) // same side of road
             {
-              if (d<(2+4*(lane-1)+2) && d>(2+4*(lane-1)-2) && fabs(other_car_s-car_s)<10)
+              if (d<(2+4*(lane-1)+2) && d>(2+4*(lane-1)-2) && fabs(other_car_s-car_s)<side_safe_dist)
               { // on left of us and pretty close
                 left_lane_clear = false;
               }
-              else if (d<(2+4*(lane+1)+2) && d>(2+4*(lane+1)-2) && fabs(other_car_s - car_s)<10)
+              else if (d<(2+4*(lane+1)+2) && d>(2+4*(lane+1)-2) && fabs(other_car_s - car_s)<side_safe_dist)
               { // on right of us and pretty close
                 right_lane_clear = false;
               }
             }
             if (d < (2+4*lane+2) && d > (2+4*lane-1))
             { // there is a car in our lane
-              if (other_car_s > car_s && other_car_s - car_s < 20)
+              if (other_car_s > car_s && other_car_s - car_s < front_safe_dist)
               { // and it's in front of us blocking the way, want to change lane
                 change_lane = true;
               }
             }
           }
 
-          double max_vel = 49.5; // mph
+          double max_vel = 49.5; // mph, max speed allowed
           double accel = 0.3;
           if (lane == 1) {
             if (left_lane_clear && change_lane) {
