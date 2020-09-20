@@ -104,47 +104,84 @@ int main() {
 
           int prev_size = previous_path_x.size();
 
-
+          // use loocation from previous if possible
           if (prev_size > 0) {
             car_s = end_path_s;
           }
 
-          bool too_close = false;
+          bool left_lane_clear = true;  // left lane of our current lane
+          bool right_lane_clear = true; // right lane of our current lane
+          bool change_lane = false;     // would like to change lane
 
-          // find ref_v to use
+          // look through cars
           for (int i = 0; i < sensor_fusion.size(); i++) {
 
-            // car is in my lane
             float d = sensor_fusion[i][6];
-            if (d < (2+4*lane+2) && d > (2+4*lane-1))
-            {
-              double vx = sensor_fusion[i][3];
-              double vy = sensor_fusion[i][4];
-              double check_speed = sqrt(vx*vx+vy*vy);
-              double check_car_s = sensor_fusion[i][5];
+            double vx = sensor_fusion[i][3];
+            double vy = sensor_fusion[i][4];
+            double other_car_speed = sqrt(vx*vx+vy*vy);
+            double other_car_s = sensor_fusion[i][5];
 
-              // if using previous points can project s value out
-              check_car_s += ((double)prev_size * 0.02 * check_speed);
-              // check s values greater than mine and s gap
-              if (check_car_s > car_s && check_car_s - car_s < 30)
-              {
-                // do some logic here, lower reference velocity so we don't 
-                // crash into the car in front of us. could also flag to try
-                // to change lanes
-                //ref_vel = 29.5; //mph
-                too_close = true;
+            // Predict where the car is in the next frame using previous points
+            other_car_s += prev_size * 0.02 * other_car_speed;
+
+            if (d > 0 && d < 12) // same side of road
+            {
+              if (d<(2+4*(lane-1)+2) && d>(2+4*(lane-1)-2) && fabs(other_car_s-car_s)<10)
+              { // on left of us and pretty close
+                left_lane_clear = false;
+              }
+              else if (d<(2+4*(lane+1)+2) && d>(2+4*(lane+1)-2) && fabs(other_car_s - car_s)<10)
+              { // on right of us and pretty close
+                right_lane_clear = false;
+              }
+            }
+            if (d < (2+4*lane+2) && d > (2+4*lane-1))
+            { // there is a car in our lane
+              if (other_car_s > car_s && other_car_s - car_s < 20)
+              { // and it's in front of us blocking the way, want to change lane
+                change_lane = true;
               }
             }
           }
 
-          double max_vel = 49.5;
-          if (too_close)
-          {
-            ref_vel -= 0.224;
+          double max_vel = 49.5; // mph
+          double accel = 0.3;
+          if (lane == 1) {
+            if (left_lane_clear && change_lane) {
+              lane -= 1;
+            }
+            else if (right_lane_clear && change_lane) {
+              lane += 1;
+            }
+            else if (!left_lane_clear && !right_lane_clear && change_lane) {
+              ref_vel -= accel;
+            }
+            else if (ref_vel <= max_vel) {
+              ref_vel += accel;
+            }
           }
-          else if (ref_vel < max_vel)
-          {
-            ref_vel += 0.224;
+          else if (lane == 0) {
+            if (right_lane_clear && change_lane) {
+              lane += 1;
+            }
+            else if (!right_lane_clear && change_lane) {
+              ref_vel -= accel;
+            }
+            else if (ref_vel <= max_vel) {
+              ref_vel += accel;
+            }
+          }
+          else if (lane == 2) {
+            if (left_lane_clear && change_lane) {
+              lane -= 1;
+            }
+            else if (!left_lane_clear && change_lane) {
+              ref_vel -= accel;
+            }
+            else if (ref_vel <= max_vel) {
+              ref_vel += accel;
+            }
           }
 
 
