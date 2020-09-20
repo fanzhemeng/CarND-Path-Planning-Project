@@ -1,5 +1,44 @@
 # CarND-Path-Planning-Project
 Self-Driving Car Engineer Nanodegree Program
+
+## Write-up
+
+* The car is able to drive at least 4.32 miles without incident.
+  * This is done by two parts, path planning from line 105 to 187, and trajectory generation from line 
+  190 to 301. Path planning essentially analyze the situation and determine what actions to take, such 
+  as accelerate, brake, change lane, etc. And variables are updated accordingly. Then these variables 
+  can be used to determine several anchor points for the future trajectory, and then generate a spline 
+  through these points using the `spline.h` library. 
+
+
+* The car drives according to the speed limit.
+  * I set a `max_vel` that is slightly lower than the speed limit at line 150. Throughout the process
+  the target speed `ref_vel` never exceed `max_vel` when making decisions at line 150 to 187, and also 
+  made to get close to it.
+
+* Max Acceleration and Jerk are not Exceeded.
+  * I set a fixed acceleration `accel` for both speed-up and slow-down at line 151, which ensures a 
+  comfortable ride with no huge acceleration or jerk.
+
+* Car does not have collisions.
+  * As the car has got a effective brake acceleration `accel` together with safe front and side distance 
+  set at line 115 and 116, it can effectively detect cars in front at safe distance, and will change lane 
+  if no car within side safe distance on either side. Otherwise it will stay in current lane and slow down. 
+
+* The car stays in its lane, except for the time between changing lanes.
+  * This is achieved by using frenet coordinates in planning. With a fixed `d` value the car will stay in its 
+  lane. The `d` value is determined by `lane` initialized at line 33, which represents which lane our car
+  is in through the process. `lane` only gets modified when necessary and safe to change lanes, thus car 
+  stays in its lane except the time between changing lanes.
+
+* The car is able to change lanes.
+  * Lane change happens in the case that there is car in front of us within safe distance, and also there is 
+  no car on our left/right within safe distance, at line 150 to 187. It prefers left lane change than right.
+  `lane` is decremented if changing lane to left, and is incremented if changing lane to right. Then `d` value 
+  of car's frenet coordinate is determined using `lane`, multiplied by lane width and add offset to stay in 
+  centre of lane, at line 235 to 237. Then spline is used to make the lane change trajectory smooth at line 235 
+  to 301.
+
    
 ### Simulator.
 You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases/tag/T3_v1.2).  
